@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="./css/styles.css">
 </head>
+
 <body class="login-page">
     <div class="container-fluid vh-100 d-flex align-items-center justify-content-center">
         <div class="row w-100 justify-content-center">
