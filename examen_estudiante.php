@@ -10,20 +10,21 @@
 </head>
 <body class="examen-page">
 
-    <nav class="navbar navbar-exam">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
-            <span class="brand-nav"><span class="logo-nav">EW</span> ExamWeb</span>
-            <span class="exam-title-nav">Admisión Ingeniería 2025</span>
-            <div class="d-flex align-items-center gap-3">
-                <div class="timer-box" id="temporizador">
-                    <span id="tiempoRestante">90:00</span>
-                </div>
-                <?php if (!empty($_SESSION["nombre"])): ?>
-                    <span class="usuario-nav"><b><?php echo $_SESSION["nombre"]; ?></b></span>
-                <?php endif; ?>
+<nav class="navbar navbar-exam">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <span class="brand-nav"><span class="logo-nav">EW</span> ExamWeb</span>
+        <span class="exam-title-nav">Admisión Ingeniería 2025</span>
+        <div class="d-flex align-items-center gap-3">
+            <div class="timer-box" id="temporizador">
+                <span id="tiempoRestante">90:00</span>
             </div>
+            <?php if (!empty($_SESSION["nombre"])): ?>
+                <span class="usuario-nav"><b><?php echo $_SESSION["nombre"]; ?></b></span>
+            <?php endif; ?>
+            <a href="./auth/logout.php" class="btn btn-logout">Salir</a>
         </div>
-    </nav>
+    </div>
+</nav>
 
     <main class="container py-4">
         <div class="row">

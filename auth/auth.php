@@ -11,7 +11,7 @@ if ($usuario == "admin" && $clave == "1234") {
 } elseif ($usuario == "estudiante" && $clave == "1234") {
     $_SESSION["nombre"] = "Estudiante Demo";
     $_SESSION["rol"] = "estudiante";
-    header("Location: ../examen_estudiante.php");
+    header("Location: ../bienvenida_estudiante.php");
 } else {
     $_SESSION["error"] = "Usuario o contraseña incorrectos.";
     header("Location: ../index.php");
