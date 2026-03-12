@@ -139,6 +139,8 @@
                         <a href="./examenes.php" class="btn btn-accion-rapida">Crear Nuevo Examen</a>
                         <a href="./examenes.php" class="btn btn-accion-rapida">Ver Exámenes</a>
                         <a href="./codigos.php" class="btn btn-accion-rapida">Generar Códigos de Acceso</a>
+                        <a href="./resultados_examen.php" class="btn btn-accion-rapida">Ver Resultados</a>
+                        <a href="./perfil_estudiante.php" class="btn btn-accion-rapida">Ver Perfil Estudiante</a>
                     </div>
                 </div>
             </div>
