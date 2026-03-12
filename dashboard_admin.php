@@ -35,6 +35,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-custom">
                             <li><a class="dropdown-item" href="./examen_estudiante.php">Vista Estudiante</a></li>
+                            <li><a class="dropdown-item" href="./resultados_examen.php">resultados examen</a></li>
                         </ul>
                     </li>
                 </ul>
