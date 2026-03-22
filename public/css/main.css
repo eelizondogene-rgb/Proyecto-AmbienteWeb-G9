@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+    --primario: #1a2b5e;
+    --primario-claro: #2a3f7e;
+    --acento: #e8a020;
+    --fondo: #f0f2f8;
+    --fondo-card: #ffffff;
+    --texto: #1c2340;
+    --texto-suave: #6b7280;
+    --verde: #16a34a;
+    --naranja: #ea580c;
+    --rojo: #dc2626;
+    --borde: #dde1ef;
+}
+
+* {
+    font-family: 'Sora', sans-serif;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--fondo);
+    color: var(--texto);
+}

@@ -1,0 +1,7 @@
+RewriteEngine On
+RewriteBase /Proyecto-AmbienteWeb-G9/public/
+
+# Redirigir todas las peticiones a index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?action=$1 [QSA,L]
