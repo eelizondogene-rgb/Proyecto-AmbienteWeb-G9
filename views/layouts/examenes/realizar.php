@@ -1,9 +1,10 @@
 <?php
-// Datos del examen desde el controlador
-$examen = $examen ?? null;
-$preguntas = $preguntas ?? [];
+$examen        = $examen    ?? null;
+$preguntas     = $preguntas ?? [];
 $totalPreguntas = count($preguntas);
+$idSesion      = $_SESSION['id_sesion'] ?? 0;
 ?>
+
 <nav class="navbar navbar-exam">
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <span class="brand-nav"><span class="logo-nav">EW</span> ExamWeb</span>
@@ -13,7 +14,9 @@ $totalPreguntas = count($preguntas);
                 <span id="tiempoRestante"><?php echo $examen['duracion_minutos'] ?? 90; ?>:00</span>
             </div>
             <?php if (!empty($_SESSION["usuario"])): ?>
-                <span class="usuario-nav"><b><?php echo htmlspecialchars($_SESSION["usuario"]['email']); ?></b></span>
+                <span class="usuario-nav">
+                    <b><?php echo htmlspecialchars($_SESSION["usuario"]['email']); ?></b>
+                </span>
             <?php endif; ?>
             <a href="index.php?action=logout" class="btn btn-logout">Salir</a>
         </div>
@@ -22,6 +25,8 @@ $totalPreguntas = count($preguntas);
 
 <main class="container py-4">
     <div class="row">
+
+        <!-- Navegación lateral -->
         <div class="col-lg-3 col-md-4 col-12 mb-4">
             <div class="panel-card">
                 <div class="panel-header">
@@ -30,7 +35,11 @@ $totalPreguntas = count($preguntas);
                 <div class="panel-body">
                     <div class="d-flex flex-wrap gap-2" id="navegacionPreguntas">
                         <?php for ($i = 1; $i <= $totalPreguntas; $i++): ?>
-                            <button class="btn btn-nav-pregunta <?php echo $i == 1 ? 'activa' : ''; ?>" onclick="irPregunta(<?php echo $i; ?>)"><?php echo $i; ?></button>
+                            <button
+                                class="btn btn-nav-pregunta <?php echo $i == 1 ? 'activa' : ''; ?>"
+                                onclick="irPregunta(<?php echo $i; ?>)">
+                                <?php echo $i; ?>
+                            </button>
                         <?php endfor; ?>
                     </div>
                     <div class="mt-3">
@@ -39,7 +48,9 @@ $totalPreguntas = count($preguntas);
                         <div class="leyenda-item"><span class="dot dot-pendiente"></span> Pendiente</div>
                     </div>
                     <div class="mt-3">
-                        <small class="text-muted">Progreso: <b id="progresoContador">0</b>/<?php echo $totalPreguntas; ?></small>
+                        <small class="text-muted">
+                            Progreso: <b id="progresoContador">0</b>/<?php echo $totalPreguntas; ?>
+                        </small>
                         <div class="progress mt-1" style="height:8px;">
                             <div class="progress-bar progress-bar-custom" id="progresoBarra" style="width: 0%"></div>
                         </div>
@@ -48,39 +59,27 @@ $totalPreguntas = count($preguntas);
             </div>
         </div>
 
+        <!-- Contenedor de pregunta -->
         <div class="col-lg-9 col-md-8 col-12">
             <div class="panel-card" id="contenedorPregunta">
                 <div class="panel-header d-flex justify-content-between align-items-center">
-                    <h5 class="panel-title mb-0">Pregunta <span id="numPreguntaActual">1</span> de <?php echo $totalPreguntas; ?></h5>
-                    <span class="badge badge-categoria">Matemáticas</span>
+                    <h5 class="panel-title mb-0">
+                        Pregunta <span id="numPreguntaActual">1</span> de <?php echo $totalPreguntas; ?>
+                    </h5>
+                    <span class="badge badge-categoria" id="badgeCategoria">-</span>
                 </div>
                 <div class="panel-body">
-                    <p class="pregunta-texto" id="textoPregunta">
-                        ¿Cuál es el resultado de resolver la ecuación cuadrática x² - 5x + 6 = 0?
-                    </p>
+                    <p class="pregunta-texto" id="textoPregunta"></p>
 
-                    <form id="formRespuesta">
-                        <div class="opciones-container" id="opcionesContainer">
-                            <label class="opcion-label">
-                                <input type="radio" name="respuesta" value="a"> x = 2 y x = 3
-                            </label>
-                            <label class="opcion-label">
-                                <input type="radio" name="respuesta" value="b"> x = 1 y x = 6
-                            </label>
-                            <label class="opcion-label">
-                                <input type="radio" name="respuesta" value="c"> x = -2 y x = -3
-                            </label>
-                            <label class="opcion-label">
-                                <input type="radio" name="respuesta" value="d"> x = 5 y x = -1
-                            </label>
-                        </div>
-                    </form>
+                    <div class="opciones-container" id="opcionesContainer"></div>
 
                     <div class="d-flex justify-content-between mt-4">
-                        <button class="btn btn-secondary" id="btnAnterior" onclick="preguntaAnterior()" disabled>
+                        <button class="btn btn-secondary" id="btnAnterior"
+                            onclick="preguntaAnterior()" disabled>
                             Anterior
                         </button>
-                        <button class="btn btn-primary-custom" id="btnSiguiente" onclick="preguntaSiguiente()">
+                        <button class="btn btn-primary-custom" id="btnSiguiente"
+                            onclick="preguntaSiguiente()">
                             Siguiente
                         </button>
                     </div>
@@ -88,7 +87,8 @@ $totalPreguntas = count($preguntas);
             </div>
 
             <div class="text-end mt-3">
-                <button class="btn btn-finalizar" data-bs-toggle="modal" data-bs-target="#modalFinalizar">
+                <button class="btn btn-finalizar"
+                    data-bs-toggle="modal" data-bs-target="#modalFinalizar">
                     Finalizar Examen
                 </button>
             </div>
@@ -96,6 +96,7 @@ $totalPreguntas = count($preguntas);
     </div>
 </main>
 
+<!-- Modal confirmación -->
 <div class="modal fade" id="modalFinalizar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content modal-custom">
@@ -109,9 +110,14 @@ $totalPreguntas = count($preguntas);
                 <p class="text-muted">Las preguntas sin responder quedarán en blanco.</p>
             </div>
             <div class="modal-footer modal-footer-custom justify-content-center">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continuar examen</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Continuar examen
+                </button>
                 <form action="index.php?action=examen_finalizar" method="post">
-                    <input type="hidden" name="id_examen" value="<?php echo $examen['id_examen']; ?>">
+                    <input type="hidden" name="id_examen"
+                        value="<?php echo $examen['id_examen'] ?? 0; ?>">
+                    <input type="hidden" name="id_sesion"
+                        value="<?php echo $idSesion; ?>">
                     <button type="submit" class="btn btn-finalizar">Sí, entregar</button>
                 </form>
             </div>
@@ -119,7 +125,12 @@ $totalPreguntas = count($preguntas);
     </div>
 </div>
 
+<!-- Pasar preguntas al JS como JSON -->
 <script>
-    // Inicializar variables para JS
     var totalPreguntas = <?php echo $totalPreguntas; ?>;
+    var idSesion       = <?php echo $idSesion; ?>;
+    var duracionMin    = <?php echo $examen['duracion_minutos'] ?? 90; ?>;
+    var urlBase        = "index.php";
+
+    var preguntas = <?php echo json_encode(array_values($preguntas)); ?>;
 </script>
