@@ -17,11 +17,16 @@ function cargarArchivo($path) {
     }
 }
 
+// Modelos
 cargarArchivo(MODELS_PATH . '/Usuario.php');
 cargarArchivo(MODELS_PATH . '/Examen.php');
+cargarArchivo(MODELS_PATH . '/Pregunta.php');
 cargarArchivo(MODELS_PATH . '/CodigoAcceso.php');
 cargarArchivo(MODELS_PATH . '/ResultadoExamen.php');
+cargarArchivo(MODELS_PATH . '/SesionExamen.php');
+cargarArchivo(MODELS_PATH . '/RespuestaEstudiante.php');
 
+// Controladores
 cargarArchivo(CONTROLLERS_PATH . '/AuthController.php');
 cargarArchivo(CONTROLLERS_PATH . '/AdminController.php');
 cargarArchivo(CONTROLLERS_PATH . '/EstudianteController.php');
@@ -81,6 +86,10 @@ switch ($action) {
     case 'examen_realizar':
         $controller = new ExamenController($db);
         $controller->realizar();
+        break;
+    case 'examen_guardar_respuesta':
+        $controller = new ExamenController($db);
+        $controller->guardarRespuesta();
         break;
     case 'examen_finalizar':
         $controller = new ExamenController($db);
