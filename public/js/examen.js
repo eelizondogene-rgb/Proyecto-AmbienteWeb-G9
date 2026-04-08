@@ -115,6 +115,5 @@ $(function () {
         }
     };
 
-    // ─── Cargar primera pregunta al abrir ─────────────────────────────
     mostrarPregunta(1);
 });

@@ -1,129 +1,136 @@
-$(function () {
+<?php
+class Examen
+{
+    private $conn;
+    private $table = "examenes";
 
-    // ─── Temporizador ────────────────────────────────────────────────
-    let tiempoRestante = duracionMin * 60;
-    let elementoTimer  = $("#tiempoRestante");
-    let timerBox       = $("#temporizador");
-
-    let intervalo = setInterval(function () {
-        tiempoRestante--;
-
-        if (tiempoRestante <= 0) {
-            clearInterval(intervalo);
-            $("form[action='index.php?action=examen_finalizar']").submit();
-        }
-
-        let minutos  = Math.floor(tiempoRestante / 60);
-        let segundos = tiempoRestante % 60;
-        let mm = minutos  < 10 ? "0" + minutos  : minutos;
-        let ss = segundos < 10 ? "0" + segundos : segundos;
-
-        elementoTimer.text(mm + ":" + ss);
-
-        if (tiempoRestante <= 300) {
-            timerBox.addClass("urgente");
-        }
-    }, 1000);
-
-    // ─── Estado de respuestas ─────────────────────────────────────────
-    // respuestas[i] = letra seleccionada o null
-    let respuestas     = new Array(totalPreguntas).fill(null);
-    let preguntaActual = 1;
-
-    // ─── Renderizar pregunta ──────────────────────────────────────────
-    function mostrarPregunta(num) {
-        let p = preguntas[num - 1];
-        if (!p) return;
-
-        $("#numPreguntaActual").text(num);
-        $("#badgeCategoria").text(p.categoria_nombre || "General");
-        $("#textoPregunta").text(p.texto);
-
-        let opciones = "";
-        let letras   = ["a", "b", "c", "d"];
-        let textos   = [p.opcion_a, p.opcion_b, p.opcion_c, p.opcion_d];
-
-        letras.forEach(function (letra, i) {
-            if (!textos[i]) return;
-            let checked = (respuestas[num - 1] === letra) ? "checked" : "";
-            opciones += `
-                <label class="opcion-label">
-                    <input type="radio" name="respuesta" value="${letra}" ${checked}>
-                    ${textos[i]}
-                </label>`;
-        });
-
-        $("#opcionesContainer").html(opciones);
-
-        // Botones anterior / siguiente
-        $("#btnAnterior").prop("disabled", num === 1);
-        if (num === totalPreguntas) {
-            $("#btnSiguiente").text("Finalizar");
-        } else {
-            $("#btnSiguiente").text("Siguiente");
-        }
-
-        // Resaltar botón activo en navegación
-        $(".btn-nav-pregunta").removeClass("activa");
-        $(".btn-nav-pregunta").eq(num - 1).addClass("activa");
+    public function __construct($db)
+    {
+        $this->conn = $db;
     }
 
-    // ─── Guardar respuesta vía AJAX (estilo profe) ────────────────────
-    function guardarRespuesta(num, respuesta) {
-        let idPregunta = preguntas[num - 1].id_pregunta;
+    public function getAll()
+    {
+        $query = "SELECT * FROM " . $this->table . " ORDER BY created_at DESC";
+        $result = $this->conn->query($query);
+        $examenes = [];
+        
+        while ($row = $result->fetch_assoc()) {
+            $examenes[] = $row;
+        }
+        
+        return $examenes;
+    }
 
-        $.post(urlBase,
-            {
-                option:       "guardar_respuesta",
-                id_sesion:    idSesion,
-                id_pregunta:  idPregunta,
-                respuesta:    respuesta
-            },
-            function (data) {
-                data = JSON.parse(data);
-                if (data.response === "00") {
-                    // Marcar como respondida en la navegación
-                    $(".btn-nav-pregunta").eq(num - 1)
-                        .addClass("respondida")
-                        .removeClass("activa");
+    public function getRecientes($limit = 5)
+    {
+        $query = "SELECT * FROM " . $this->table . " ORDER BY created_at DESC LIMIT ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $limit);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $examenes = [];
+        
+        while ($row = $result->fetch_assoc()) {
+            $examenes[] = $row;
+        }
+        
+        return $examenes;
+    }
 
-                    // Actualizar progreso
-                    let respondidas = respuestas.filter(r => r !== null).length;
-                    $("#progresoContador").text(respondidas);
-                    let pct = Math.round((respondidas / totalPreguntas) * 100);
-                    $("#progresoBarra").css("width", pct + "%");
-                }
-            }
+    public function getTotal()
+    {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table;
+        $result = $this->conn->query($query);
+        $row = $result->fetch_assoc();
+        return $row['total'];
+    }
+
+    public function getById($id)
+    {
+        $query = "SELECT * FROM " . $this->table . " WHERE id_examen = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            return $result->fetch_assoc();
+        }
+        return null;
+    }
+
+    public function getPendientePorEstudiante($id_usuario)
+    {
+        $query = "SELECT e.* FROM examenes e 
+                  JOIN codigos_acceso c ON e.id_examen = c.id_examen 
+                  JOIN asignacion_codigo a ON c.id_codigo = a.id_codigo 
+                  JOIN estudiantes est ON a.id_estudiante = est.id_estudiante 
+                  WHERE est.id_usuario = ? AND e.estado = 'activo' 
+                  AND c.estado = 'disponible' 
+                  AND NOT EXISTS (SELECT 1 FROM sesiones_examen s WHERE s.id_estudiante = est.id_estudiante AND s.id_examen = e.id_examen)
+                  LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id_usuario);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            return $result->fetch_assoc();
+        }
+        return null;
+    }
+
+    public function crear($data)
+    {
+        $query = "INSERT INTO " . $this->table . " 
+                  (nombre, descripcion, nivel, duracion_minutos, fecha_inicio, fecha_cierre, estado, creado_por) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("sssissii", 
+            $data['nombre'], 
+            $data['descripcion'], 
+            $data['nivel'], 
+            $data['duracion_minutos'],
+            $data['fecha_inicio'],
+            $data['fecha_cierre'],
+            $data['estado'],
+            $data['creado_por']
         );
+        
+        if ($stmt->execute()) {
+            return $this->conn->insert_id;
+        }
+        return false;
     }
 
-    // ─── Navegación ──────────────────────────────────────────────────
-    window.irPregunta = function (num) {
-        preguntaActual = num;
-        mostrarPregunta(num);
-    };
+    public function actualizar($id, $data)
+    {
+        $query = "UPDATE " . $this->table . " 
+                  SET nombre = ?, descripcion = ?, nivel = ?, duracion_minutos = ?, 
+                      fecha_inicio = ?, fecha_cierre = ?, estado = ?, updated_at = NOW() 
+                  WHERE id_examen = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("sssissii", 
+            $data['nombre'], 
+            $data['descripcion'], 
+            $data['nivel'], 
+            $data['duracion_minutos'],
+            $data['fecha_inicio'],
+            $data['fecha_cierre'],
+            $data['estado'],
+            $id
+        );
+        
+        return $stmt->execute();
+    }
 
-    window.preguntaSiguiente = function () {
-        let seleccionada = $("input[name='respuesta']:checked").val();
-
-        if (seleccionada) {
-            respuestas[preguntaActual - 1] = seleccionada;
-            guardarRespuesta(preguntaActual, seleccionada);
-        }
-
-        if (preguntaActual < totalPreguntas) {
-            preguntaActual++;
-            mostrarPregunta(preguntaActual);
-        }
-    };
-
-    window.preguntaAnterior = function () {
-        if (preguntaActual > 1) {
-            preguntaActual--;
-            mostrarPregunta(preguntaActual);
-        }
-    };
-
-    // ─── Inicio ──────────────────────────────────────────────────────
-    mostrarPregunta(1);
-});
+    public function eliminar($id)
+    {
+        $query = "DELETE FROM " . $this->table . " WHERE id_examen = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id);
+        return $stmt->execute();
+    }
+}
+?>
