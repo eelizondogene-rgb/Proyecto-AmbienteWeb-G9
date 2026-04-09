@@ -1,4 +1,6 @@
 <?php
+// app/models/CodigoAcceso.php
+
 class CodigoAcceso
 {
     private $conn;
@@ -21,7 +23,21 @@ class CodigoAcceso
         while ($row = $result->fetch_assoc()) {
             $codigos[] = $row;
         }
+        return $codigos;
+    }
+
+    public function getByExamen($id_examen)
+    {
+        $query = "SELECT * FROM " . $this->table . " WHERE id_examen = ? ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id_examen);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $codigos = [];
         
+        while ($row = $result->fetch_assoc()) {
+            $codigos[] = $row;
+        }
         return $codigos;
     }
 
@@ -33,16 +49,39 @@ class CodigoAcceso
         return $row['total'];
     }
 
-    public function validarCodigo($codigo)
+    public function generarCodigo($id_examen, $usos_max = 1, $fecha_vencimiento = null)
     {
-        $query = "SELECT c.*, e.* FROM " . $this->table . " c 
-                  JOIN examenes e ON c.id_examen = e.id_examen 
-                  WHERE c.codigo = ? 
-                  AND c.estado = 'disponible' 
-                  AND (c.fecha_vencimiento IS NULL OR c.fecha_vencimiento > NOW())
-                  AND c.usos_actuales < c.usos_max";
+        // Generar código único
+        $codigo = strtoupper(substr(md5(uniqid()), 0, 10));
+        
+        $query = "INSERT INTO " . $this->table . " (codigo, id_examen, usos_max, fecha_vencimiento) 
+                  VALUES (?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
-        $stmt->bind_param("s", $codigo);
+        $stmt->bind_param("siis", $codigo, $id_examen, $usos_max, $fecha_vencimiento);
+        
+        if ($stmt->execute()) {
+            return $codigo;
+        }
+        return false;
+    }
+
+    public function generarMultiples($id_examen, $cantidad, $usos_max = 1, $fecha_vencimiento = null)
+    {
+        $codigos = [];
+        for ($i = 0; $i < $cantidad; $i++) {
+            $codigo = $this->generarCodigo($id_examen, $usos_max, $fecha_vencimiento);
+            if ($codigo) {
+                $codigos[] = $codigo;
+            }
+        }
+        return $codigos;
+    }
+
+    public function getById($id)
+    {
+        $query = "SELECT * FROM " . $this->table . " WHERE id_codigo = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id);
         $stmt->execute();
         $result = $stmt->get_result();
         
@@ -51,4 +90,21 @@ class CodigoAcceso
         }
         return null;
     }
+
+    public function eliminar($id)
+    {
+        $query = "DELETE FROM " . $this->table . " WHERE id_codigo = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id);
+        return $stmt->execute();
+    }
+
+    public function revocar($id)
+    {
+        $query = "UPDATE " . $this->table . " SET estado = 'revocado' WHERE id_codigo = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id);
+        return $stmt->execute();
+    }
 }
+?>

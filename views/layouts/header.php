@@ -47,10 +47,16 @@ $userEmail = htmlspecialchars($_SESSION['usuario']['email'] ?? 'Usuario');
                             <a class="nav-link nav-link-custom <?php echo $activePage === 'examenes' ? 'active' : ''; ?>" href="index.php?action=admin_examenes">Exámenes</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-custom <?php echo $activePage === 'codigos' ? 'active' : ''; ?>" href="index.php?action=admin_codigos">Códigos de Acceso</a>
+                            <a class="nav-link nav-link-custom <?php echo $activePage === 'preguntas' ? 'active' : ''; ?>" href="index.php?action=admin_examenes">Preguntas</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom <?php echo $activePage === 'codigos' ? 'active' : ''; ?>" href="index.php?action=admin_codigos">Códigos</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link nav-link-custom <?php echo $activePage === 'resultados' ? 'active' : ''; ?>" href="index.php?action=admin_resultados">Resultados</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom <?php echo $activePage === 'usuarios' ? 'active' : ''; ?>" href="index.php?action=admin_usuarios">Usuarios</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link nav-link-custom <?php echo $activePage === 'reportes' ? 'active' : ''; ?>" href="index.php?action=admin_reportes">Reportes</a>

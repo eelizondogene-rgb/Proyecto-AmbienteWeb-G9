@@ -99,6 +99,14 @@ switch ($action) {
         $controller = new ExamenController($db);
         $controller->accesoPorCodigo();
         break;
+         case 'admin_usuarios':
+        $controller = new AdminController($db);
+        $controller->usuarios();
+        break;
+         case 'admin_preguntas':
+        $controller = new AdminController($db);
+        $controller->preguntas();
+        break;
     default:
         header("Location: index.php?action=login");
         break;

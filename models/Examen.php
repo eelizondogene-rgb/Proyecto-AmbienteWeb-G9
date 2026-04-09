@@ -1,4 +1,6 @@
 <?php
+
+
 class Examen
 {
     private $conn;
@@ -18,7 +20,6 @@ class Examen
         while ($row = $result->fetch_assoc()) {
             $examenes[] = $row;
         }
-        
         return $examenes;
     }
 
@@ -34,7 +35,6 @@ class Examen
         while ($row = $result->fetch_assoc()) {
             $examenes[] = $row;
         }
-        
         return $examenes;
     }
 
@@ -60,37 +60,15 @@ class Examen
         return null;
     }
 
-    public function getPendientePorEstudiante($id_usuario)
-    {
-        $query = "SELECT e.* FROM examenes e 
-                  JOIN codigos_acceso c ON e.id_examen = c.id_examen 
-                  JOIN asignacion_codigo a ON c.id_codigo = a.id_codigo 
-                  JOIN estudiantes est ON a.id_estudiante = est.id_estudiante 
-                  WHERE est.id_usuario = ? AND e.estado = 'activo' 
-                  AND c.estado = 'disponible' 
-                  AND NOT EXISTS (SELECT 1 FROM sesiones_examen s WHERE s.id_estudiante = est.id_estudiante AND s.id_examen = e.id_examen)
-                  LIMIT 1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bind_param("i", $id_usuario);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            return $result->fetch_assoc();
-        }
-        return null;
-    }
-
     public function crear($data)
     {
         $query = "INSERT INTO " . $this->table . " 
-                  (nombre, descripcion, nivel, duracion_minutos, fecha_inicio, fecha_cierre, estado, creado_por) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                  (nombre, descripcion, duracion_minutos, fecha_inicio, fecha_cierre, estado, creado_por) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
-        $stmt->bind_param("sssissii", 
+        $stmt->bind_param("ssisssi", 
             $data['nombre'], 
             $data['descripcion'], 
-            $data['nivel'], 
             $data['duracion_minutos'],
             $data['fecha_inicio'],
             $data['fecha_cierre'],
@@ -107,21 +85,19 @@ class Examen
     public function actualizar($id, $data)
     {
         $query = "UPDATE " . $this->table . " 
-                  SET nombre = ?, descripcion = ?, nivel = ?, duracion_minutos = ?, 
+                  SET nombre = ?, descripcion = ?, duracion_minutos = ?, 
                       fecha_inicio = ?, fecha_cierre = ?, estado = ?, updated_at = NOW() 
                   WHERE id_examen = ?";
         $stmt = $this->conn->prepare($query);
-        $stmt->bind_param("sssissii", 
+        $stmt->bind_param("ssisssi", 
             $data['nombre'], 
             $data['descripcion'], 
-            $data['nivel'], 
             $data['duracion_minutos'],
             $data['fecha_inicio'],
             $data['fecha_cierre'],
             $data['estado'],
             $id
         );
-        
         return $stmt->execute();
     }
 
@@ -130,6 +106,14 @@ class Examen
         $query = "DELETE FROM " . $this->table . " WHERE id_examen = ?";
         $stmt = $this->conn->prepare($query);
         $stmt->bind_param("i", $id);
+        return $stmt->execute();
+    }
+
+    public function cambiarEstado($id, $estado)
+    {
+        $query = "UPDATE " . $this->table . " SET estado = ? WHERE id_examen = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("si", $estado, $id);
         return $stmt->execute();
     }
 }
