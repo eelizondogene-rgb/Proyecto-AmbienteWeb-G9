@@ -91,16 +91,54 @@ class ResultadoExamen
     {
         $query = "SELECT 
                     COUNT(*) as total_presentados,
-                    AVG(porcentaje) as promedio,
-                    SUM(CASE WHEN estado = 'aprobado' THEN 1 ELSE 0 END) as aprobados,
-                    SUM(CASE WHEN estado = 'reprobado' THEN 1 ELSE 0 END) as reprobados,
-                    MAX(porcentaje) as maximo,
-                    MIN(porcentaje) as minimo
+                    AVG(r.porcentaje) as promedio,
+                    SUM(CASE WHEN r.estado = 'aprobado' THEN 1 ELSE 0 END) as aprobados,
+                    SUM(CASE WHEN r.estado = 'reprobado' THEN 1 ELSE 0 END) as reprobados,
+                    MAX(r.porcentaje) as maximo,
+                    MIN(r.porcentaje) as minimo
                   FROM " . $this->table . " r
                   JOIN sesiones_examen s ON r.id_sesion = s.id_sesion
                   WHERE s.id_examen = ?";
         $stmt = $this->conn->prepare($query);
         $stmt->bind_param("i", $id_examen);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            return $result->fetch_assoc();
+        }
+        return null;
+    }
+
+    public function crear($id_sesion, $puntaje_total, $puntaje_obtenido, $porcentaje, $estado)
+    {
+        $query = "INSERT INTO " . $this->table . " 
+                  (id_sesion, puntaje_total, puntaje_obtenido, porcentaje, estado, fecha_calificacion) 
+                  VALUES (?, ?, ?, ?, ?, NOW())";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("iiids", $id_sesion, $puntaje_total, $puntaje_obtenido, $porcentaje, $estado);
+        
+        if ($stmt->execute()) {
+            return $this->conn->insert_id;
+        }
+        return false;
+    }
+
+    public function actualizar($id_sesion, $puntaje_total, $puntaje_obtenido, $porcentaje, $estado)
+    {
+        $query = "UPDATE " . $this->table . " 
+                  SET puntaje_total = ?, puntaje_obtenido = ?, porcentaje = ?, estado = ?, fecha_calificacion = NOW() 
+                  WHERE id_sesion = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("iiids", $puntaje_total, $puntaje_obtenido, $porcentaje, $estado, $id_sesion);
+        return $stmt->execute();
+    }
+
+    public function getBySesion($id_sesion)
+    {
+        $query = "SELECT * FROM " . $this->table . " WHERE id_sesion = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $id_sesion);
         $stmt->execute();
         $result = $stmt->get_result();
         

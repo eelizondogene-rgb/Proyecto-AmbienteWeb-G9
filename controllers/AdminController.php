@@ -44,7 +44,6 @@ class AdminController
         $pageTitle = "Gestión de Exámenes";
         $activePage = "examenes";
         
-
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($_POST['action'])) {
                 switch ($_POST['action']) {
@@ -246,12 +245,14 @@ class AdminController
         $pageTitle = "Códigos de Acceso";
         $activePage = "codigos";
         
-
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($_POST['action'])) {
                 switch ($_POST['action']) {
                     case 'generar':
                         $this->generarCodigos();
+                        break;
+                    case 'asignar':
+                        $this->asignarCodigo();
                         break;
                     case 'eliminar':
                         $this->eliminarCodigo();
@@ -263,8 +264,9 @@ class AdminController
             }
         }
         
-        $codigos = $this->codigoModel->getAll();
+        $codigos = $this->codigoModel->getAllWithAsignacion();
         $examenes = $this->examenModel->getAll();
+        $estudiantes = $this->usuarioModel->getAllEstudiantes();
         
         include dirname(__DIR__) . '/views/layouts/header.php';
         include dirname(__DIR__) . '/views/admin/codigos.php';
@@ -277,18 +279,56 @@ class AdminController
         $cantidad = $_POST['cantidad'] ?? 1;
         $usos_max = $_POST['usos_max'] ?? 1;
         $fecha_vencimiento = $_POST['fecha_vencimiento'] ?? null;
+        $id_estudiante = $_POST['id_estudiante'] ?? null;
         
         $codigos = $this->codigoModel->generarMultiples($id_examen, $cantidad, $usos_max, $fecha_vencimiento);
         
         if (count($codigos) > 0) {
             $_SESSION['success'] = count($codigos) . " códigos generados correctamente";
             $_SESSION['codigos_generados'] = $codigos;
+            
+            // Si se seleccionó un estudiante, asignar todos los códigos
+            if ($id_estudiante && $id_estudiante > 0) {
+                $asignacionModel = new AsignacionCodigo($this->db);
+                $asignados = 0;
+                
+                foreach ($codigos as $codigo) {
+                    // Obtener el id_codigo del código generado
+                    $codigoData = $this->codigoModel->getByCodigo($codigo);
+                    if ($codigoData && $asignacionModel->crear($id_estudiante, $codigoData['id_codigo'])) {
+                        $asignados++;
+                    }
+                }
+                $_SESSION['success'] .= " | $asignados códigos asignados al estudiante";
+            }
         } else {
             $_SESSION['error'] = "Error al generar los códigos";
         }
         header("Location: index.php?action=admin_codigos");
         exit;
     }
+
+    private function asignarCodigo()
+{
+    $id_codigo = isset($_POST['id_codigo']) ? intval($_POST['id_codigo']) : 0;
+    $id_estudiante = isset($_POST['id_estudiante']) ? intval($_POST['id_estudiante']) : 0;
+    
+    if ($id_codigo <= 0 || $id_estudiante <= 0) {
+        $_SESSION['error'] = "Datos inválidos para la asignación";
+        header("Location: index.php?action=admin_codigos");
+        exit;
+    }
+    
+    $asignacionModel = new AsignacionCodigo($this->db);
+    
+    if ($asignacionModel->crear($id_estudiante, $id_codigo)) {
+        $_SESSION['success'] = "Código asignado correctamente al estudiante";
+    } else {
+        $_SESSION['error'] = "Error al asignar el código. Verifica que el estudiante exista.";
+    }
+    header("Location: index.php?action=admin_codigos");
+    exit;
+}
 
     private function eliminarCodigo()
     {

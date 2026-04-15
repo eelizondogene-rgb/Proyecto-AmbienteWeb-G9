@@ -1,6 +1,5 @@
 $(function () {
 
-    // ─── Temporizador ─────────────────────────────────────────────────
     let tiempoRestante = duracionMin * 60;
     let elementoTimer  = $("#tiempoRestante");
     let timerBox       = $("#temporizador");
@@ -25,11 +24,9 @@ $(function () {
         }
     }, 1000);
 
-    // ─── Estado local de respuestas ────────────────────────────────────
-    let respuestas     = new Array(totalPreguntas).fill(null);
+   let respuestas     = new Array(totalPreguntas).fill(null);
     let preguntaActual = 1;
 
-    // ─── Renderizar pregunta ───────────────────────────────────────────
     function mostrarPregunta(num) {
         let p = preguntas[num - 1];
         if (!p) return;
@@ -61,19 +58,22 @@ $(function () {
         $(".btn-nav-pregunta").eq(num - 1).addClass("activa");
     }
 
-    // ─── Guardar respuesta vía AJAX ────────────────────────────────────
     function guardarRespuesta(num, respuesta) {
         let idPregunta = preguntas[num - 1].id_pregunta;
 
-        $.post(urlBase,
-            {
-                option:      "guardar_respuesta",
-                id_sesion:   idSesion,
+        console.log("Guardando respuesta:", {id_sesion: idSesion, id_pregunta: idPregunta, respuesta: respuesta});
+
+        $.ajax({
+            url: urlBase,
+            type: "POST",
+            data: {
+                action: "examen_guardar_respuesta",  
                 id_pregunta: idPregunta,
-                respuesta:   respuesta
+                respuesta: respuesta
             },
-            function (data) {
-                data = JSON.parse(data);
+            dataType: "json",
+            success: function(data) {
+                console.log("Respuesta servidor:", data);
                 if (data.response === "00") {
                     $(".btn-nav-pregunta").eq(num - 1)
                         .addClass("respondida")
@@ -83,13 +83,18 @@ $(function () {
                     $("#progresoContador").text(respondidas);
                     let pct = Math.round((respondidas / totalPreguntas) * 100);
                     $("#progresoBarra").css("width", pct + "%");
+                } else {
+                    console.error("Error del servidor:", data);
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error AJAX:", error);
+                console.error("Respuesta:", xhr.responseText);
             }
-        );
+        });
     }
 
-    // ─── Navegación ───────────────────────────────────────────────────
-    window.irPregunta = function (num) {
+   window.irPregunta = function (num) {
         preguntaActual = num;
         mostrarPregunta(num);
     };

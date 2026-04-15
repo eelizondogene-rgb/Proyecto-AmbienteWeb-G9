@@ -1,6 +1,4 @@
 <?php
-// app/models/Usuario.php
-
 class Usuario
 {
     private $conn;
@@ -44,10 +42,10 @@ class Usuario
 
     public function getAllEstudiantes()
     {
-        $query = "SELECT u.*, e.nombre, e.apellidos, e.fecha_nacimiento, e.telefono 
+        $query = "SELECT u.*, e.id_estudiante, e.nombre, e.apellidos, e.fecha_nacimiento, e.telefono 
                   FROM usuarios u 
                   JOIN estudiantes e ON u.id_usuario = e.id_usuario 
-                  WHERE u.rol = 'estudiante'
+                  WHERE u.rol = 'estudiante' AND u.activo = 1
                   ORDER BY u.fecha_registro DESC";
         $result = $this->conn->query($query);
         $usuarios = [];
@@ -60,7 +58,7 @@ class Usuario
 
     public function getEstudianteData($id_usuario)
     {
-        $query = "SELECT u.*, e.nombre, e.apellidos, e.fecha_nacimiento, e.telefono 
+        $query = "SELECT u.*, e.id_estudiante, e.nombre, e.apellidos, e.fecha_nacimiento, e.telefono 
                   FROM usuarios u 
                   LEFT JOIN estudiantes e ON u.id_usuario = e.id_usuario 
                   WHERE u.id_usuario = ?";
@@ -85,30 +83,44 @@ class Usuario
 
     public function crearEstudiante($data)
     {
-        // Primero crear usuario
-        $queryUser = "INSERT INTO usuarios (email, contraseña, rol) VALUES (?, ?, 'estudiante')";
-        $stmtUser = $this->conn->prepare($queryUser);
-        $stmtUser->bind_param("ss", $data['email'], md5($data['password']));
+        // Primero verificar si el email ya existe
+        $checkQuery = "SELECT id_usuario FROM " . $this->table . " WHERE email = ?";
+        $checkStmt = $this->conn->prepare($checkQuery);
+        $checkStmt->bind_param("s", $data['email']);
+        $checkStmt->execute();
+        $checkResult = $checkStmt->get_result();
         
-        if ($stmtUser->execute()) {
-            $id_usuario = $this->conn->insert_id;
-            
-            // Luego crear datos del estudiante
-            $queryEst = "INSERT INTO estudiantes (id_usuario, nombre, apellidos, fecha_nacimiento, telefono) 
-                         VALUES (?, ?, ?, ?, ?)";
-            $stmtEst = $this->conn->prepare($queryEst);
-            $stmtEst->bind_param("issss", 
-                $id_usuario, 
-                $data['nombre'], 
-                $data['apellidos'], 
-                $data['fecha_nacimiento'], 
-                $data['telefono']
-            );
-            
-            if ($stmtEst->execute()) {
-                return $id_usuario;
-            }
+        if ($checkResult->num_rows > 0) {
+            $_SESSION['error'] = "El email ya está registrado";
+            return false;
         }
+        
+        $queryUser = "INSERT INTO usuarios (email, contraseña, rol, activo) VALUES (?, MD5(?), 'estudiante', 1)";
+        $stmtUser = $this->conn->prepare($queryUser);
+        $stmtUser->bind_param("ss", $data['email'], $data['password']);
+        
+        if (!$stmtUser->execute()) {
+            return false;
+        }
+        
+        $id_usuario = $this->conn->insert_id;
+        
+        $queryEst = "INSERT INTO estudiantes (id_usuario, nombre, apellidos, fecha_nacimiento, telefono) 
+                     VALUES (?, ?, ?, ?, ?)";
+        $stmtEst = $this->conn->prepare($queryEst);
+        
+        // Asignar valores por separado para evitar el error "only variables should be passed by reference"
+        $nombre = $data['nombre'];
+        $apellidos = $data['apellidos'] ?? null;
+        $fecha_nacimiento = $data['fecha_nacimiento'] ?? null;
+        $telefono = $data['telefono'] ?? null;
+        
+        $stmtEst->bind_param("issss", $id_usuario, $nombre, $apellidos, $fecha_nacimiento, $telefono);
+        
+        if ($stmtEst->execute()) {
+            return $id_usuario;
+        }
+        
         return false;
     }
 
@@ -117,13 +129,13 @@ class Usuario
         $query = "UPDATE estudiantes SET nombre = ?, apellidos = ?, fecha_nacimiento = ?, telefono = ? 
                   WHERE id_usuario = ?";
         $stmt = $this->conn->prepare($query);
-        $stmt->bind_param("ssssi", 
-            $data['nombre'], 
-            $data['apellidos'], 
-            $data['fecha_nacimiento'], 
-            $data['telefono'],
-            $id_usuario
-        );
+        
+        $nombre = $data['nombre'];
+        $apellidos = $data['apellidos'] ?? null;
+        $fecha_nacimiento = $data['fecha_nacimiento'] ?? null;
+        $telefono = $data['telefono'] ?? null;
+        
+        $stmt->bind_param("ssssi", $nombre, $apellidos, $fecha_nacimiento, $telefono, $id_usuario);
         return $stmt->execute();
     }
 

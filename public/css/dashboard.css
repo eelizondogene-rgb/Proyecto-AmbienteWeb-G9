@@ -10,7 +10,9 @@
     padding: 12px 20px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
-
+.stat-purple {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+}
 .brand-nav {
     color: white !important;
     font-weight: 700;
