@@ -21,7 +21,6 @@ class Database
                 throw new Exception("Error conexión: " . $this->conn->connect_error);
             }
 
-            // Establecer charset UTF-8
             $this->conn->set_charset("utf8");
 
             return $this->conn;
