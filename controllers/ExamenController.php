@@ -34,6 +34,15 @@ class ExamenController
         $idEstudiante = $_SESSION['id_estudiante'] ?? null;
         $idCodigo = $_SESSION['id_codigo'] ?? null;
         
+        if (!$idEstudiante && isset($_SESSION['usuario'])) {
+            $estudianteModel = new Estudiante($this->db);
+            $estudiante = $estudianteModel->getByUsuarioId($_SESSION['usuario']['id_usuario']);
+            if ($estudiante) {
+                $idEstudiante = $estudiante['id_estudiante'];
+                $_SESSION['id_estudiante'] = $idEstudiante;
+            }
+        }
+        
         $idSesion = 0;
         
         if ($idEstudiante && $idExamen) {
@@ -102,18 +111,22 @@ class ExamenController
         $checkStmt->bind_param("ii", $idSesion, $idPregunta);
         $checkStmt->execute();
         $checkResult = $checkStmt->get_result();
-        
+
         if ($checkResult->num_rows > 0) {
             $row = $checkResult->fetch_assoc();
-            $query = "UPDATE respuestas_estudiante SET respuesta_seleccionada = ?, es_correcta = ?, puntaje_obtenido = ? WHERE id_respuesta = ?";
+            $query = "UPDATE respuestas_estudiante 
+                      SET respuesta_seleccionada = ?, es_correcta = ?, puntaje_obtenido = ? 
+                      WHERE id_respuesta = ?";
             $stmt = $this->db->prepare($query);
             $stmt->bind_param("siii", $respuesta, $esCorrectaInt, $puntaje, $row['id_respuesta']);
         } else {
-            $query = "INSERT INTO respuestas_estudiante (id_sesion, id_pregunta, respuesta_seleccionada, es_correcta, puntaje_obtenido) VALUES (?, ?, ?, ?, ?)";
+            $query = "INSERT INTO respuestas_estudiante 
+                      (id_sesion, id_pregunta, respuesta_seleccionada, es_correcta, puntaje_obtenido) 
+                      VALUES (?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($query);
             $stmt->bind_param("iisii", $idSesion, $idPregunta, $respuesta, $esCorrectaInt, $puntaje);
         }
-        
+
         if ($stmt->execute()) {
             echo json_encode(['response' => '00', 'es_correcta' => $esCorrecta]);
         } else {
@@ -224,13 +237,14 @@ class ExamenController
             ];
             $_SESSION['id_estudiante'] = $asignacion['id_estudiante'];
             $_SESSION['id_codigo'] = $codigoData['id_codigo'];
+            $_SESSION['id_examen_pendiente'] = $codigoData['id_examen'];
 
             $query = "UPDATE codigos_acceso SET usos_actuales = usos_actuales + 1 WHERE id_codigo = ?";
             $stmt = $this->db->prepare($query);
             $stmt->bind_param("i", $codigoData['id_codigo']);
             $stmt->execute();
 
-            header("Location: index.php?action=examen_realizar&id=" . $codigoData['id_examen']);
+            header("Location: index.php?action=estudiante_bienvenida");
             exit;
         }
 

@@ -67,7 +67,10 @@ switch ($action) {
         $controller = new AdminController($db);
         $controller->preguntas();
         break;
-        
+    case 'admin_detalle_resultado':
+        $controller = new AdminController($db);
+        $controller->detalleResultado();
+        break;
     case 'admin_codigos':
         $controller = new AdminController($db);
         $controller->codigos();
@@ -97,6 +100,10 @@ switch ($action) {
         $controller = new EstudianteController($db);
         $controller->perfil();
         break;
+        case 'estudiante_actualizar_perfil':
+    $controller = new EstudianteController($db);
+    $controller->actualizarPerfil();
+    break;
         
     case 'estudiante_historial':
         $controller = new EstudianteController($db);

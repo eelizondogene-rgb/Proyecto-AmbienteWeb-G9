@@ -8,7 +8,49 @@ class AdminController
     private $codigoModel;
     private $resultadoModel;
     private $usuarioModel;
-
+public function detalleResultado()
+{
+    $pageTitle = "Detalle del Resultado";
+    $activePage = "resultados";
+    
+    $id_resultado = $_GET['id'] ?? 0;
+    
+    if (!$id_resultado) {
+        header("Location: index.php?action=admin_resultados");
+        exit;
+    }
+    
+    $query = "SELECT r.*, u.email, e.nombre as examen_nombre, est.nombre as estudiante_nombre
+              FROM resultados_examen r 
+              JOIN sesiones_examen s ON r.id_sesion = s.id_sesion
+              JOIN estudiantes est ON s.id_estudiante = est.id_estudiante
+              JOIN usuarios u ON est.id_usuario = u.id_usuario
+              JOIN examenes e ON s.id_examen = e.id_examen
+              WHERE r.id_resultado = ?";
+    $stmt = $this->db->prepare($query);
+    $stmt->bind_param("i", $id_resultado);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $resultado = $result->fetch_assoc();
+    
+    
+    $query = "SELECT r.*, p.texto, p.respuesta_correcta, p.puntos
+              FROM respuestas_estudiante r
+              JOIN preguntas p ON r.id_pregunta = p.id_pregunta
+              WHERE r.id_sesion = ?";
+    $stmt = $this->db->prepare($query);
+    $stmt->bind_param("i", $resultado['id_sesion']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $respuestas = [];
+    while ($row = $result->fetch_assoc()) {
+        $respuestas[] = $row;
+    }
+    
+    include dirname(__DIR__) . '/views/layouts/header.php';
+    include dirname(__DIR__) . '/views/admin/detalle_resultado.php';
+    include dirname(__DIR__) . '/views/layouts/footer.php';
+}
     public function __construct($db)
     {
         $this->db = $db;

@@ -175,11 +175,6 @@ class CodigoAcceso
 
     public function eliminar($id)
 {
-   $queryAsignacion = "DELETE FROM asignacion_codigo WHERE id_codigo = ?";
-    $stmtAsignacion = $this->conn->prepare($queryAsignacion);
-    $stmtAsignacion->bind_param("i", $id);
-    $stmtAsignacion->execute();
-    
     $queryGetSesiones = "SELECT id_sesion FROM sesiones_examen WHERE id_codigo = ?";
     $stmtGet = $this->conn->prepare($queryGetSesiones);
     $stmtGet->bind_param("i", $id);
@@ -187,16 +182,27 @@ class CodigoAcceso
     $resultSesiones = $stmtGet->get_result();
     
     while ($sesion = $resultSesiones->fetch_assoc()) {
-         $queryResultado = "DELETE FROM resultados_examen WHERE id_sesion = ?";
-        $stmtResultado = $this->conn->prepare($queryResultado);
-        $stmtResultado->bind_param("i", $sesion['id_sesion']);
-        $stmtResultado->execute();
+     
+        $queryRespuestas = "DELETE FROM respuestas_estudiante WHERE id_sesion = ?";
+        $stmtRespuestas = $this->conn->prepare($queryRespuestas);
+        $stmtRespuestas->bind_param("i", $sesion['id_sesion']);
+        $stmtRespuestas->execute();
+        
+        $queryResultados = "DELETE FROM resultados_examen WHERE id_sesion = ?";
+        $stmtResultados = $this->conn->prepare($queryResultados);
+        $stmtResultados->bind_param("i", $sesion['id_sesion']);
+        $stmtResultados->execute();
     }
     
     $querySesion = "DELETE FROM sesiones_examen WHERE id_codigo = ?";
     $stmtSesion = $this->conn->prepare($querySesion);
     $stmtSesion->bind_param("i", $id);
     $stmtSesion->execute();
+    
+    $queryAsignacion = "DELETE FROM asignacion_codigo WHERE id_codigo = ?";
+    $stmtAsignacion = $this->conn->prepare($queryAsignacion);
+    $stmtAsignacion->bind_param("i", $id);
+    $stmtAsignacion->execute();
     
     $query = "DELETE FROM " . $this->table . " WHERE id_codigo = ?";
     $stmt = $this->conn->prepare($query);

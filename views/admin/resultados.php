@@ -57,7 +57,15 @@
     <div class="panel-body">
         <table class="table table-custom">
             <thead>
-                <tr><th>Estudiante</th><th>Examen</th><th>Puntaje</th><th>Porcentaje</th><th>Estado</th><th>Fecha</th></tr>
+                <tr>
+                    <th>Estudiante</th>
+                    <th>Examen</th>
+                    <th>Puntaje</th>
+                    <th>Porcentaje</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
             </thead>
             <tbody>
                 <?php foreach ($resultados as $resultado): ?>
@@ -70,8 +78,13 @@
                         <span class="badge badge-<?php echo $resultado['estado'] == 'aprobado' ? 'activo' : 'finalizado'; ?>">
                             <?php echo ucfirst($resultado['estado']); ?>
                         </span>
-                    </td>
+                    </span>
                     <td><?php echo $resultado['fecha_calificacion'] ?? $resultado['fecha_presentacion'] ?? 'N/A'; ?></td>
+                    <td>
+                        <a href="index.php?action=admin_detalle_resultado&id=<?php echo $resultado['id_resultado']; ?>" class="btn btn-xs btn-accion">
+                            Ver detalle
+                        </a>
+                    </span>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

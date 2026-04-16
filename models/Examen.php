@@ -59,38 +59,34 @@ class Examen
         return null;
     }
 
-    /**
-     * Obtiene el examen pendiente para un estudiante específico
-     * Busca exámenes activos con códigos disponibles asignados al estudiante
-     */
-    public function getPendientePorEstudiante($id_usuario)
-    {
-        $query = "SELECT e.* FROM examenes e 
-                  JOIN codigos_acceso c ON e.id_examen = c.id_examen 
-                  JOIN asignacion_codigo a ON c.id_codigo = a.id_codigo 
-                  JOIN estudiantes est ON a.id_estudiante = est.id_estudiante 
-                  WHERE est.id_usuario = ? 
-                  AND e.estado = 'activo' 
-                  AND c.estado = 'disponible' 
-                  AND (c.fecha_vencimiento IS NULL OR c.fecha_vencimiento > NOW())
-                  AND c.usos_actuales < c.usos_max
-                  AND NOT EXISTS (
-                      SELECT 1 FROM sesiones_examen s 
-                      WHERE s.id_estudiante = est.id_estudiante 
-                      AND s.id_examen = e.id_examen 
-                      AND s.estado IN ('en_curso', 'finalizado')
-                  )
-                  LIMIT 1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bind_param("i", $id_usuario);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            return $result->fetch_assoc();
-        }
-        return null;
+public function getPendientePorEstudiante($id_usuario)
+{
+    $query = "SELECT e.* FROM examenes e 
+              JOIN codigos_acceso c ON e.id_examen = c.id_examen 
+              JOIN asignacion_codigo a ON c.id_codigo = a.id_codigo 
+              JOIN estudiantes est ON a.id_estudiante = est.id_estudiante 
+              WHERE est.id_usuario = ? 
+              AND e.estado = 'activo' 
+              AND c.estado = 'disponible' 
+              AND (c.fecha_vencimiento IS NULL OR c.fecha_vencimiento > NOW())
+              AND c.usos_actuales <= c.usos_max
+              AND NOT EXISTS (
+                  SELECT 1 FROM sesiones_examen s 
+                  WHERE s.id_estudiante = est.id_estudiante 
+                  AND s.id_examen = e.id_examen 
+                  AND s.estado = 'finalizado'
+              )
+              LIMIT 1";
+    $stmt = $this->conn->prepare($query);
+    $stmt->bind_param("i", $id_usuario);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        return $result->fetch_assoc();
     }
+    return null;
+}
 
     public function crear($data)
     {
