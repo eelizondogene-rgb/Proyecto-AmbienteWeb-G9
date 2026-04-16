@@ -31,13 +31,10 @@ class ExamenController
         $preguntaModel = new Pregunta($this->db);
         $preguntas = $preguntaModel->getByExamen($idExamen);
 
-       $puntajeTotal = 0;
-        foreach ($preguntas as $pregunta) {
-            $puntajeTotal += $pregunta['puntos'];
-        }
-
-       $idEstudiante = $_SESSION['id_estudiante'] ?? null;
+        $idEstudiante = $_SESSION['id_estudiante'] ?? null;
         $idCodigo = $_SESSION['id_codigo'] ?? null;
+        
+        $idSesion = 0;
         
         if ($idEstudiante && $idExamen) {
             $sesionModel = new SesionExamen($this->db);
@@ -74,7 +71,7 @@ class ExamenController
 
     public function guardarRespuesta()
     {
-       $auth = new AuthController($this->db);
+        $auth = new AuthController($this->db);
         $auth->verificarSesion();
 
         $idSesion    = $_POST['id_sesion']   ?? 0;
@@ -97,15 +94,30 @@ class ExamenController
         }
 
         $esCorrecta = ($respuesta === $pregunta['respuesta_correcta']);
-        $puntaje    = $esCorrecta ? ($pregunta['puntos'] ?? 1) : 0;
+        $puntaje    = $esCorrecta ? (int)($pregunta['puntos'] ?? 1) : 0;
+        $esCorrectaInt = $esCorrecta ? 1 : 0;
 
-        $respuestaModel = new RespuestaEstudiante($this->db);
-        $resultado = $respuestaModel->guardar($idSesion, $idPregunta, $respuesta, $esCorrecta, $puntaje);
-
-        if ($resultado) {
+        $checkQuery = "SELECT id_respuesta FROM respuestas_estudiante WHERE id_sesion = ? AND id_pregunta = ?";
+        $checkStmt = $this->db->prepare($checkQuery);
+        $checkStmt->bind_param("ii", $idSesion, $idPregunta);
+        $checkStmt->execute();
+        $checkResult = $checkStmt->get_result();
+        
+        if ($checkResult->num_rows > 0) {
+            $row = $checkResult->fetch_assoc();
+            $query = "UPDATE respuestas_estudiante SET respuesta_seleccionada = ?, es_correcta = ?, puntaje_obtenido = ? WHERE id_respuesta = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("siii", $respuesta, $esCorrectaInt, $puntaje, $row['id_respuesta']);
+        } else {
+            $query = "INSERT INTO respuestas_estudiante (id_sesion, id_pregunta, respuesta_seleccionada, es_correcta, puntaje_obtenido) VALUES (?, ?, ?, ?, ?)";
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("iisii", $idSesion, $idPregunta, $respuesta, $esCorrectaInt, $puntaje);
+        }
+        
+        if ($stmt->execute()) {
             echo json_encode(['response' => '00', 'es_correcta' => $esCorrecta]);
         } else {
-            echo json_encode(['response' => '03', 'message' => 'Error al guardar']);
+            echo json_encode(['response' => '03', 'message' => 'Error al guardar: ' . $stmt->error]);
         }
         exit;
     }
@@ -124,40 +136,39 @@ class ExamenController
             exit;
         }
 
-      $sesionModel = new SesionExamen($this->db);
-        $sesionModel->finalizar($idSesion);
+        $query = "UPDATE sesiones_examen SET estado = 'finalizado', fecha_fin = NOW() WHERE id_sesion = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("i", $idSesion);
+        $stmt->execute();
 
-       $respuestaModel = new RespuestaEstudiante($this->db);
-        $puntajeObtenido = $respuestaModel->calcularPuntaje($idSesion);
+        $query = "SELECT SUM(puntaje_obtenido) as total FROM respuestas_estudiante WHERE id_sesion = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("i", $idSesion);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $puntajeObtenido = (int)($row['total'] ?? 0);
         
-       $preguntaModel = new Pregunta($this->db);
-        $preguntas = $preguntaModel->getByExamen($idExamen);
-        $puntajeTotal = 0;
-        foreach ($preguntas as $pregunta) {
-            $puntajeTotal += $pregunta['puntos'];
-        }
+        $query = "SELECT SUM(puntos) as total FROM preguntas WHERE id_examen = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("i", $idExamen);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $puntajeTotal = (int)($row['total'] ?? 1);
         
-       if ($puntajeTotal == 0) {
-            $puntajeTotal = 1;
-        }
-
-        $porcentaje = round(($puntajeObtenido / $puntajeTotal) * 100, 2);
+        $porcentaje = $puntajeTotal > 0 ? round(($puntajeObtenido / $puntajeTotal) * 100, 2) : 0;
         $estado = $porcentaje >= 70 ? 'aprobado' : 'reprobado';
 
-       $resultadoModel = new ResultadoExamen($this->db);
-        
-         $resultadoExistente = $resultadoModel->getBySesion($idSesion);
-        
-        if ($resultadoExistente) {
-             $resultadoModel->actualizar($idSesion, $puntajeTotal, $puntajeObtenido, $porcentaje, $estado);
-        } else {
-           $resultadoModel->crear($idSesion, $puntajeTotal, $puntajeObtenido, $porcentaje, $estado);
-        }
+        $query = "INSERT INTO resultados_examen (id_sesion, puntaje_total, puntaje_obtenido, porcentaje, estado, fecha_calificacion) VALUES (?, ?, ?, ?, ?, NOW())";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("iiids", $idSesion, $puntajeTotal, $puntajeObtenido, $porcentaje, $estado);
+        $stmt->execute();
 
-      unset($_SESSION['id_sesion']);
+        unset($_SESSION['id_sesion']);
         unset($_SESSION['id_codigo']);
 
-        $_SESSION['success'] = "Examen finalizado correctamente. Puntaje: " . $puntajeObtenido . "/" . $puntajeTotal . " (" . $porcentaje . "%)";
+        $_SESSION['success'] = "Examen finalizado. Puntaje: " . $puntajeObtenido . "/" . $puntajeTotal . " (" . $porcentaje . "%)";
         header("Location: index.php?action=estudiante_resultados");
         exit;
     }
@@ -173,60 +184,51 @@ class ExamenController
                 exit;
             }
 
-            $codigoModel = new CodigoAcceso($this->db);
-            
-           $diagnostico = $codigoModel->diagnosticarCodigo($codigo);
+            $query = "SELECT c.*, e.id_examen FROM codigos_acceso c JOIN examenes e ON c.id_examen = e.id_examen WHERE c.codigo = ? AND c.estado = 'disponible' AND e.estado = 'activo'";
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("s", $codigo);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $codigoData = $result->fetch_assoc();
 
-            if (!$diagnostico) {
-                $_SESSION['error'] = "Código no existe en la base de datos";
+            if (!$codigoData) {
+                $_SESSION['error'] = "Código inválido o expirado";
                 header("Location: index.php?action=login");
                 exit;
             }
 
-            if ($diagnostico['razon'] !== 'VALIDO') {
-                $_SESSION['error'] = "❌ " . $diagnostico['razon'];
-                header("Location: index.php?action=login");
-                exit;
-            }
-
-            $codigoData = $diagnostico;
-
-            $asignacionModel = new AsignacionCodigo($this->db);
-            $asignacion = $asignacionModel->getByCodigo($codigoData['id_codigo']);
+            $query = "SELECT a.*, e.id_estudiante FROM asignacion_codigo a JOIN estudiantes e ON a.id_estudiante = e.id_estudiante WHERE a.id_codigo = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("i", $codigoData['id_codigo']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $asignacion = $result->fetch_assoc();
 
             if (!$asignacion) {
-                $_SESSION['error'] = "Este código no está asignado a ningún estudiante";
+                $_SESSION['error'] = "Código no asignado a ningún estudiante";
                 header("Location: index.php?action=login");
                 exit;
             }
 
-            $estudianteModel = new Estudiante($this->db);
-            $estudiante = $estudianteModel->getById($asignacion['id_estudiante']);
-            
-            if (!$estudiante) {
-                $_SESSION['error'] = "Estudiante no encontrado";
-                header("Location: index.php?action=login");
-                exit;
-            }
-            
-            $usuarioModel = new Usuario($this->db);
-            $usuario = $usuarioModel->getById($estudiante['id_usuario']);
+            $query = "SELECT u.* FROM usuarios u JOIN estudiantes e ON u.id_usuario = e.id_usuario WHERE e.id_estudiante = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("i", $asignacion['id_estudiante']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $usuario = $result->fetch_assoc();
 
-            if (!$usuario) {
-                $_SESSION['error'] = "Usuario del estudiante no encontrado";
-                header("Location: index.php?action=login");
-                exit;
-            }
-
-     $_SESSION['usuario'] = [
+            $_SESSION['usuario'] = [
                 'id_usuario' => $usuario['id_usuario'],
                 'email' => $usuario['email'],
                 'rol' => 'estudiante'
             ];
-            $_SESSION['id_estudiante'] = $estudiante['id_estudiante'];
+            $_SESSION['id_estudiante'] = $asignacion['id_estudiante'];
             $_SESSION['id_codigo'] = $codigoData['id_codigo'];
 
-        $codigoModel->incrementarUso($codigoData['id_codigo']);
+            $query = "UPDATE codigos_acceso SET usos_actuales = usos_actuales + 1 WHERE id_codigo = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("i", $codigoData['id_codigo']);
+            $stmt->execute();
 
             header("Location: index.php?action=examen_realizar&id=" . $codigoData['id_examen']);
             exit;

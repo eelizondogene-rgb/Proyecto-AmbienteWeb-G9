@@ -24,7 +24,6 @@ class ResultadoExamen
         while ($row = $result->fetch_assoc()) {
             $resultados[] = $row;
         }
-        
         return $resultados;
     }
 
@@ -54,7 +53,6 @@ class ResultadoExamen
         while ($row = $result->fetch_assoc()) {
             $resultados[] = $row;
         }
-        
         return $resultados;
     }
 
@@ -117,11 +115,7 @@ class ResultadoExamen
                   VALUES (?, ?, ?, ?, ?, NOW())";
         $stmt = $this->conn->prepare($query);
         $stmt->bind_param("iiids", $id_sesion, $puntaje_total, $puntaje_obtenido, $porcentaje, $estado);
-        
-        if ($stmt->execute()) {
-            return $this->conn->insert_id;
-        }
-        return false;
+        return $stmt->execute();
     }
 
     public function actualizar($id_sesion, $puntaje_total, $puntaje_obtenido, $porcentaje, $estado)

@@ -12,7 +12,9 @@ class RespuestaEstudiante
     public function guardar($id_sesion, $id_pregunta, $respuesta, $es_correcta, $puntaje)
     {
         $es_correcta_int = $es_correcta ? 1 : 0;
+        $puntaje = (int)$puntaje;
         
+        // Verificar si ya existe
         $checkQuery = "SELECT id_respuesta FROM " . $this->table . " WHERE id_sesion = ? AND id_pregunta = ?";
         $checkStmt = $this->conn->prepare($checkQuery);
         $checkStmt->bind_param("ii", $id_sesion, $id_pregunta);
@@ -20,14 +22,13 @@ class RespuestaEstudiante
         $checkResult = $checkStmt->get_result();
         
         if ($checkResult->num_rows > 0) {
-       
+            $row = $checkResult->fetch_assoc();
             $query = "UPDATE " . $this->table . " 
                       SET respuesta_seleccionada = ?, es_correcta = ?, puntaje_obtenido = ? 
-                      WHERE id_sesion = ? AND id_pregunta = ?";
+                      WHERE id_respuesta = ?";
             $stmt = $this->conn->prepare($query);
-            $stmt->bind_param("siiii", $respuesta, $es_correcta_int, $puntaje, $id_sesion, $id_pregunta);
+            $stmt->bind_param("siii", $respuesta, $es_correcta_int, $puntaje, $row['id_respuesta']);
         } else {
-          
             $query = "INSERT INTO " . $this->table . " 
                       (id_sesion, id_pregunta, respuesta_seleccionada, es_correcta, puntaje_obtenido) 
                       VALUES (?, ?, ?, ?, ?)";
@@ -35,10 +36,7 @@ class RespuestaEstudiante
             $stmt->bind_param("iisii", $id_sesion, $id_pregunta, $respuesta, $es_correcta_int, $puntaje);
         }
         
-        if ($stmt->execute()) {
-            return true;
-        }
-        return false;
+        return $stmt->execute();
     }
 
     public function calcularPuntaje($id_sesion)
@@ -49,7 +47,7 @@ class RespuestaEstudiante
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
-        return $row['total'] ?? 0;
+        return (int)($row['total'] ?? 0);
     }
 
     public function getRespuestasBySesion($id_sesion)

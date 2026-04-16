@@ -43,7 +43,7 @@ $db = $database->connect();
 $action = $_GET['action'] ?? 'login';
 
 switch ($action) {
-    case 'login':
+   case 'login':
         $controller = new AuthController($db);
         $controller->login();
         break;
@@ -53,7 +53,7 @@ switch ($action) {
         $controller->logout();
         break;
         
-    case 'admin_dashboard':
+   case 'admin_dashboard':
         $controller = new AdminController($db);
         $controller->dashboard();
         break;
@@ -87,8 +87,8 @@ switch ($action) {
         $controller = new ReporteController($db);
         $controller->index();
         break;
-       
-    case 'estudiante_bienvenida':
+  
+      case 'estudiante_bienvenida':
         $controller = new EstudianteController($db);
         $controller->bienvenida();
         break;
@@ -107,7 +107,7 @@ switch ($action) {
         $controller = new EstudianteController($db);
         $controller->resultados();
         break;
-        
+    
     case 'examen_realizar':
         $controller = new ExamenController($db);
         $controller->realizar();
